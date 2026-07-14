@@ -68,3 +68,58 @@ validate
 build
 deploy
 Automate
+
+
+
+
+
+''''
+000
+# Passing Variables Between Jobs in GitHub Actions
+
+This workflow demonstrates **how to share data between separate jobs** in GitHub Actions, which is a key pattern when jobs need to coordinate.
+
+## The Problem
+
+By default, jobs in GitHub Actions run in isolation. Environment variables set in one job (`FOO=$value`) don't automatically transfer to other jobs. This workflow shows the solution.
+
+## How It Works
+
+### **Producer Job** (generates the data)
+```yaml
+outputs:
+  foo: ${{ steps.generate-foo.outputs.foo }}
+```
+- The `outputs` section exposes step outputs so other jobs can access them
+- The `generate-foo` step writes to `$GITHUB_OUTPUT`:
+  ```bash
+  echo "foo=${foo}" >> "$GITHUB_OUTPUT"
+  ```
+  This creates a **step output** named `foo` with value `bar`
+
+- It also writes to `$GITHUB_ENV`:
+  ```bash
+  echo "FOO=${foo}" >> "$GITHUB_ENV"
+  ```
+  This creates a **job-scoped environment variable** (only available within this job)
+
+### **Consumer Job** (receives the data)
+```yaml
+needs: producer
+```
+- The `needs` keyword declares a dependency on the producer job
+- It accesses the producer's outputs via:
+  ```bash
+  ${{ needs.producer.outputs.foo }}
+  ```
+- Notice: `FOO` is **unset** in the consumer because `$GITHUB_ENV` doesn't cross job boundaries
+
+## Key Takeaways
+
+| Method | Scope | Cross-Job? |
+|--------|-------|-----------|
+| `$GITHUB_OUTPUT` | Step output → Job output | ✅ Yes (via `needs.*`) |
+| `$GITHUB_ENV` | Current job only | ❌ No |
+| Job `env:` | Current job only | ❌ No |
+
+**TL;DR:** Use step outputs + job outputs (`$GITHUB_OUTPUT`) to pass data between jobs. Environment variables stay within the job.
