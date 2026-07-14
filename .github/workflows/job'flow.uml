@@ -1,0 +1,9 @@
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      BUILD_TYPE: Release
+
+    steps:
+      - run: echo $BUILD_TYPE
